@@ -1,2 +1,3 @@
 Akıllı Fiş Kolay Ödeme Sistemi - Zübeyde Nur Topalak (02220224557)
 Ödevimi Flask Api ile yaptım."http://127.0.0.1:5000/" adresi üzerinden uygulamanın swaggerına ulaşabilirsiniz.
+Swagger kısmında masa id için mock ile 2 tane belli masa simüle edildiği için sadece bu idler ile çalışıyor.(masa_101 ve masa_102 )
