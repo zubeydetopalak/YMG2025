@@ -1,225 +1,159 @@
-{
-    "swagger": "2.0",
-    "basePath": "/",
-    "paths": {
-        "/cafe/masaHesabi": {
-            "parameters": [
-                {
-                    "name": "id",
-                    "in": "query",
-                    "type": "string",
-                    "required": true,
-                    "description": "Hesabı getirilecek masa ID"
-                }
-            ],
-            "get": {
-                "responses": {
-                    "404": {
-                        "description": "Masa bulunamadı"
-                    },
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/MasaHesapDetayi"
-                        }
-                    }
-                },
-                "summary": "[Adım 2 & 3] Müşterinin QR koddan okuttuğu masa ID'sine ait hesap detaylarını getirir",
-                "operationId": "get_masa_hesabi",
-                "parameters": [
-                    {
-                        "name": "X-Fields",
-                        "in": "header",
-                        "type": "string",
-                        "format": "mask",
-                        "description": "An optional fields mask"
-                    }
-                ],
-                "tags": [
-                    "cafe"
-                ]
-            }
-        },
-        "/cafe/odemeBaslat/{masa_id}": {
-            "parameters": [
-                {
-                    "in": "path",
-                    "description": "Ödeme yapılacak masa ID (örn: masa_101)",
-                    "name": "masa_id",
-                    "required": true,
-                    "type": "string"
-                }
-            ],
-            "post": {
-                "responses": {
-                    "404": {
-                        "description": "Masa bulunamadı"
-                    },
-                    "400": {
-                        "description": "Ödeme Başarısız / Geçersiz İstek",
-                        "schema": {
-                            "$ref": "#/definitions/OdemeSonucu"
-                        }
-                    },
-                    "200": {
-                        "description": "Ödeme Başarılı",
-                        "schema": {
-                            "$ref": "#/definitions/OdemeSonucu"
-                        }
-                    }
-                },
-                "summary": "[Adım 6-12] Müşteriden alınan tutar ve (mock) kart bilgileri ile ödeme işlemini başlatır",
-                "operationId": "post_odeme_baslat",
-                "parameters": [
-                    {
-                        "name": "payload",
-                        "required": true,
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/OdemeInput"
-                        }
-                    }
-                ],
-                "tags": [
-                    "cafe"
-                ]
-            }
-        }
-    },
-    "info": {
-        "title": "Akıllı Fiş Kolay Ödeme Sistemi API",
-        "version": "1.0",
-        "description": "Bu API, Akıllı Fiş sistemi için gerekli olan masa hesabı alma ve ödeme yapma işlemlerini simüle eder."
-    },
-    "produces": [
-        "application/json"
-    ],
-    "consumes": [
-        "application/json"
-    ],
-    "tags": [
-        {
-            "name": "cafe",
-            "description": "Masa ve Ödeme İşlemleri"
-        }
-    ],
-    "definitions": {
-        "MasaHesapDetayi": {
-            "properties": {
-                "masa_adi": {
-                    "type": "string",
-                    "description": "Masanın adı",
-                    "example": "Bahçe - 1"
-                },
-                "toplam_tutar": {
-                    "type": "number",
-                    "description": "Hesabın toplamı"
-                },
-                "odenen_tutar": {
-                    "type": "number",
-                    "description": "Şu ana kadar ödenen tutar"
-                },
-                "kalan_tutar": {
-                    "type": "number",
-                    "description": "Ödenmesi gereken kalan tutar"
-                },
-                "siparisler": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/SiparisKalemi"
-                    }
-                }
-            },
-            "type": "object"
-        },
-        "SiparisKalemi": {
-            "properties": {
-                "ad": {
-                    "type": "string",
-                    "description": "Siparişin adı",
-                    "example": "2x Türk Kahvesi"
-                },
-                "tutar": {
-                    "type": "number",
-                    "description": "Kalemin toplam tutarı",
-                    "example": 180.0
-                }
-            },
-            "type": "object"
-        },
-        "OdemeInput": {
-            "required": [
-                "cvc",
-                "kart_numarasi",
-                "kart_sahibi",
-                "son_kullanma_ay",
-                "son_kullanma_yil",
-                "tutar"
-            ],
-            "properties": {
-                "tutar": {
-                    "type": "number",
-                    "description": "Ödenmek istenen tutar",
-                    "example": 100.5
-                },
-                "kart_sahibi": {
-                    "type": "string",
-                    "description": "Kart sahibinin adı",
-                    "example": "Zübeyde Nur Topalak"
-                },
-                "kart_numarasi": {
-                    "type": "string",
-                    "description": "(Mock) Kart Numarası",
-                    "example": "1234-5678-9012-3456"
-                },
-                "son_kullanma_ay": {
-                    "type": "integer",
-                    "description": "(Mock) SKT Ay",
-                    "example": 12
-                },
-                "son_kullanma_yil": {
-                    "type": "integer",
-                    "description": "(Mock) SKT Yıl",
-                    "example": 2028
-                },
-                "cvc": {
-                    "type": "string",
-                    "description": "(Mock) CVC",
-                    "example": "123"
-                }
-            },
-            "type": "object"
-        },
-        "OdemeSonucu": {
-            "properties": {
-                "basarili": {
-                    "type": "boolean",
-                    "description": "Ödemenin başarılı olup olmadığı"
-                },
-                "mesaj": {
-                    "type": "string",
-                    "description": "İşlem sonucu mesajı",
-                    "example": "Ödeme başarıyla alındı."
-                },
-                "islem_referans_no": {
-                    "type": "string",
-                    "description": "(Mock) Iyzico işlem referansı",
-                    "example": "iyz_123abc456"
-                },
-                "guncel_kalan_tutar": {
-                    "type": "number",
-                    "description": "Ödeme sonrası masada kalan tutar"
-                }
-            },
-            "type": "object"
-        }
-    },
-    "responses": {
-        "ParseError": {
-            "description": "When a mask can't be parsed"
-        },
-        "MaskError": {
-            "description": "When any error occurs on mask"
-        }
-    }
-}
+swagger: '2.0'
+info:
+  title: Akıllı Fiş Kolay Ödeme Sistemi API
+  version: '1.0'
+  description: Bu API, Akıllı Fiş sistemi için gerekli olan masa hesabı alma ve ödeme yapma işlemlerini simüle eder.
+host: 127.0.0.1:5000
+schemes:
+  - http
+basePath: /
+produces:
+  - application/json
+consumes:
+  - application/json
+tags:
+  - name: cafe
+    description: Masa ve Ödeme İşlemleri
+paths:
+  /cafe/masaHesabi:
+    parameters:
+      - name: id
+        in: query
+        type: string
+        required: true
+        description: Hesabı getirilecek masa ID
+    get:
+      responses:
+        '200':
+          description: Success
+          schema:
+            $ref: '#/definitions/MasaHesapDetayi'
+        '404':
+          description: Masa bulunamadı
+      summary: '[Adım 2 & 3] Müşterinin QR koddan okuttuğu masa ID''sine ait hesap detaylarını getirir'
+      operationId: get_masa_hesabi
+      parameters:
+        - name: X-Fields
+          in: header
+          type: string
+          format: mask
+          description: An optional fields mask
+      tags:
+        - cafe
+  /cafe/odemeBaslat/{masa_id}:
+    parameters:
+      - in: path
+        description: 'Ödeme yapılacak masa ID (örn: masa_101)'
+        name: masa_id
+        required: true
+        type: string
+    post:
+      responses:
+        '200':
+          description: Ödeme Başarılı
+          schema:
+            $ref: '#/definitions/OdemeSonucu'
+        '400':
+          description: Ödeme Başarısız / Geçersiz İstek
+          schema:
+            $ref: '#/definitions/OdemeSonucu'
+        '404':
+          description: Masa bulunamadı
+      summary: '[Adım 6-12] Müşteriden alınan tutar ve (mock) kart bilgileri ile ödeme işlemini başlatır'
+      operationId: post_odeme_baslat
+      parameters:
+        - name: payload
+          required: true
+          in: body
+          schema:
+            $ref: '#/definitions/OdemeInput'
+      tags:
+        - cafe
+definitions:
+  MasaHesapDetayi:
+    properties:
+      masa_adi:
+        type: string
+        description: Masanın adı
+        example: Bahçe - 1
+      toplam_tutar:
+        type: number
+        description: Hesabın toplamı
+      odenen_tutar:
+        type: number
+        description: Şu ana kadar ödenen tutar
+      kalan_tutar:
+        type: number
+        description: Ödenmesi gereken kalan tutar
+      siparisler:
+        type: array
+        items:
+          $ref: '#/definitions/SiparisKalemi'
+    type: object
+  SiparisKalemi:
+    properties:
+      ad:
+        type: string
+        description: Siparişin adı
+        example: 2x Türk Kahvesi
+      tutar:
+        type: number
+        description: Kalemin toplam tutarı
+        example: 180
+    type: object
+  OdemeInput:
+    required:
+      - cvc
+      - kart_numarasi
+      - kart_sahibi
+      - son_kullanma_ay
+      - son_kullanma_yil
+      - tutar
+    properties:
+      tutar:
+        type: number
+        description: Ödenmek istenen tutar
+        example: 100.5
+      kart_sahibi:
+        type: string
+        description: Kart sahibinin adı
+        example: Zübeyde Nur Topalak
+      kart_numarasi:
+        type: string
+        description: (Mock) Kart Numarası
+        example: 1234-5678-9012-3456
+      son_kullanma_ay:
+        type: integer
+        description: (Mock) SKT Ay
+        example: 12
+      son_kullanma_yil:
+        type: integer
+        description: (Mock) SKT Yıl
+        example: 2028
+      cvc:
+        type: string
+        description: (Mock) CVC
+        example: '123'
+    type: object
+  OdemeSonucu:
+    properties:
+      basarili:
+        type: boolean
+        description: Ödemenin başarılı olup olmadığı
+      mesaj:
+        type: string
+        description: İşlem sonucu mesajı
+        example: Ödeme başarıyla alındı.
+      islem_referans_no:
+        type: string
+        description: (Mock) Iyzico işlem referansı
+        example: iyz_123abc456
+      guncel_kalan_tutar:
+        type: number
+        description: Ödeme sonrası masada kalan tutar
+    type: object
+responses:
+  ParseError:
+    description: When a mask can't be parsed
+  MaskError:
+    description: When any error occurs on mask
