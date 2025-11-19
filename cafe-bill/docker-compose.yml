@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: postgress_db
+    environment:
+      POSTGRES_DB: smartbill_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"
+    volumes:
+      # Veritabanı verilerinin kalıcı olması için volume
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+  
+  api:
+    build: .
+    container_name: bill_api
+    command: python app.py
+    environment:
+      # API'nin veritabanına bağlanması için gerekli URI
+      DATABASE_URL: postgresql://user:password@db/smartbill_db
+    ports:
+      - "5003:5000"
+    depends_on:
+      - db
+    # Veritabanı hazır olana kadar bekle
+    restart: always
+
+volumes:
+  postgres_data:
