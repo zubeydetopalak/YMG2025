@@ -1,159 +1,203 @@
-swagger: '2.0'
+openapi: 3.0.0
 info:
-  title: Akıllı Fiş Kolay Ödeme Sistemi API
-  version: '1.0'
-  description: Bu API, Akıllı Fiş sistemi için gerekli olan masa hesabı alma ve ödeme yapma işlemlerini simüle eder.
-host: 127.0.0.1:5000
-schemes:
-  - http
-basePath: /
-produces:
-  - application/json
-consumes:
-  - application/json
+  title: SmartBill Restoran API
+  description: Restoran adisyon, masa yönetimi ve sipariş takibi için geliştirilmiş REST API.
+  version: 1.0.0
+  contact:
+    email: info@smartbill.com
+    name: SmartBill Developer
+
+servers:
+  - url: http://localhost:5002
+    description: Yerel Docker Sunucusu
+
 tags:
-  - name: cafe
-    description: Masa ve Ödeme İşlemleri
+  - name: Genel
+    description: Genel sistem durumu
+  - name: Masalar
+    description: Masa yönetimi ve durum sorgulama
+  - name: Sipariş & Ödeme
+    description: Sipariş girişi ve hesap işlemleri
+
 paths:
-  /cafe/masaHesabi:
-    parameters:
-      - name: id
-        in: query
-        type: string
-        required: true
-        description: Hesabı getirilecek masa ID
+  /:
     get:
+      tags:
+        - Genel
+      summary: API Sağlık Kontrolü
+      description: API'nin çalışıp çalışmadığını kontrol eder.
       responses:
         '200':
-          description: Success
-          schema:
-            $ref: '#/definitions/MasaHesapDetayi'
-        '404':
-          description: Masa bulunamadı
-      summary: '[Adım 2 & 3] Müşterinin QR koddan okuttuğu masa ID''sine ait hesap detaylarını getirir'
-      operationId: get_masa_hesabi
-      parameters:
-        - name: X-Fields
-          in: header
-          type: string
-          format: mask
-          description: An optional fields mask
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "SmartBill API Çalışıyor"
+                  status:
+                    type: string
+                    example: "active"
+
+  /masalar:
+    get:
       tags:
-        - cafe
-  /cafe/odemeBaslat/{masa_id}:
-    parameters:
-      - in: path
-        description: 'Ödeme yapılacak masa ID (örn: masa_101)'
-        name: masa_id
-        required: true
-        type: string
+        - Masalar
+      summary: Tüm Masaları Listele
+      description: Masaların doluluk oranlarını, toplam borçlarını ve kalan bakiyelerini listeler.
+      responses:
+        '200':
+          description: Başarılı
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MasaDurum'
     post:
+      tags:
+        - Masalar
+      summary: Yeni Masa Oluştur
+      description: Sisteme yeni bir masa tanımlar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MasaEkle'
+      responses:
+        '201':
+          description: Masa başarıyla oluşturuldu
+        '400':
+          description: Hatalı istek veya masa ID zaten mevcut
+
+  /masalar/{masa_id}/sifirla:
+    delete:
+      tags:
+        - Masalar
+      summary: Masayı Sıfırla (Hesap Kapat)
+      description: Müşteri kalktığında masanın siparişlerini siler ve bakiyesini sıfırlar.
+      parameters:
+        - name: masa_id
+          in: path
+          description: Sıfırlanacak masanın ID'si
+          required: true
+          schema:
+            type: string
       responses:
         '200':
-          description: Ödeme Başarılı
-          schema:
-            $ref: '#/definitions/OdemeSonucu'
-        '400':
-          description: Ödeme Başarısız / Geçersiz İstek
-          schema:
-            $ref: '#/definitions/OdemeSonucu'
+          description: Başarılı sıfırlama işlemi
         '404':
           description: Masa bulunamadı
-      summary: '[Adım 6-12] Müşteriden alınan tutar ve (mock) kart bilgileri ile ödeme işlemini başlatır'
-      operationId: post_odeme_baslat
-      parameters:
-        - name: payload
-          required: true
-          in: body
-          schema:
-            $ref: '#/definitions/OdemeInput'
+
+  /siparis:
+    post:
       tags:
-        - cafe
-definitions:
-  MasaHesapDetayi:
-    properties:
-      masa_adi:
-        type: string
-        description: Masanın adı
-        example: Bahçe - 1
-      toplam_tutar:
-        type: number
-        description: Hesabın toplamı
-      odenen_tutar:
-        type: number
-        description: Şu ana kadar ödenen tutar
-      kalan_tutar:
-        type: number
-        description: Ödenmesi gereken kalan tutar
-      siparisler:
-        type: array
-        items:
-          $ref: '#/definitions/SiparisKalemi'
-    type: object
-  SiparisKalemi:
-    properties:
-      ad:
-        type: string
-        description: Siparişin adı
-        example: 2x Türk Kahvesi
-      tutar:
-        type: number
-        description: Kalemin toplam tutarı
-        example: 180
-    type: object
-  OdemeInput:
-    required:
-      - cvc
-      - kart_numarasi
-      - kart_sahibi
-      - son_kullanma_ay
-      - son_kullanma_yil
-      - tutar
-    properties:
-      tutar:
-        type: number
-        description: Ödenmek istenen tutar
-        example: 100.5
-      kart_sahibi:
-        type: string
-        description: Kart sahibinin adı
-        example: Zübeyde Nur Topalak
-      kart_numarasi:
-        type: string
-        description: (Mock) Kart Numarası
-        example: 1234-5678-9012-3456
-      son_kullanma_ay:
-        type: integer
-        description: (Mock) SKT Ay
-        example: 12
-      son_kullanma_yil:
-        type: integer
-        description: (Mock) SKT Yıl
-        example: 2028
-      cvc:
-        type: string
-        description: (Mock) CVC
-        example: '123'
-    type: object
-  OdemeSonucu:
-    properties:
-      basarili:
-        type: boolean
-        description: Ödemenin başarılı olup olmadığı
-      mesaj:
-        type: string
-        description: İşlem sonucu mesajı
-        example: Ödeme başarıyla alındı.
-      islem_referans_no:
-        type: string
-        description: (Mock) Iyzico işlem referansı
-        example: iyz_123abc456
-      guncel_kalan_tutar:
-        type: number
-        description: Ödeme sonrası masada kalan tutar
-    type: object
-responses:
-  ParseError:
-    description: When a mask can't be parsed
-  MaskError:
-    description: When any error occurs on mask
+        - Sipariş & Ödeme
+      summary: Sipariş Ekle
+      description: Belirli bir masaya ürün ve tutar ekler.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SiparisEkle'
+      responses:
+        '201':
+          description: Sipariş eklendi
+        '404':
+          description: Masa bulunamadı
+
+  /odeme:
+    post:
+      tags:
+        - Sipariş & Ödeme
+      summary: Ödeme Yap
+      description: Masadan kısmi veya tam ödeme alır.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OdemeYap'
+      responses:
+        '200':
+          description: Ödeme başarılı, kalan bakiye dönülür.
+        '400':
+          description: Hatalı istek
+
+components:
+  schemas:
+    MasaEkle:
+      type: object
+      required:
+        - id
+        - masa_adi
+      properties:
+        id:
+          type: string
+          description: Masanın benzersiz kodu
+          example: "masa_5"
+        masa_adi:
+          type: string
+          description: Masanın görünen adı
+          example: "Bahçe Masa 5"
+
+    MasaDurum:
+      type: object
+      properties:
+        id:
+          type: string
+        ad:
+          type: string
+        toplam_siparis_tutari:
+          type: number
+          format: float
+          example: 450.0
+        odenen_tutar:
+          type: number
+          format: float
+          example: 100.0
+        kalan_bakiye:
+          type: number
+          format: float
+          example: 350.0
+        durum:
+          type: string
+          enum: [Müsait, Dolu]
+          example: "Dolu"
+
+    SiparisEkle:
+      type: object
+      required:
+        - masa_id
+        - urun_adi
+        - tutar
+      properties:
+        masa_id:
+          type: string
+          example: "masa_5"
+        urun_adi:
+          type: string
+          example: "Künefe"
+        tutar:
+          type: number
+          format: float
+          example: 120.0
+
+    OdemeYap:
+      type: object
+      required:
+        - masa_id
+        - tutar
+      properties:
+        masa_id:
+          type: string
+          example: "masa_5"
+        tutar:
+          type: number
+          format: float
+          description: Ödenen miktar
+          example: 50.0
