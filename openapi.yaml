@@ -1,0 +1,259 @@
+openapi: 3.0.0
+info:
+  title: SmartBill Cafe/Restoran API
+  description: Flask ve PostgreSQL tabanlı Masa Yönetimi ve Sipariş/Ödeme takip sistemi.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+    description: Docker Compose ile yerel geliştirme ortamı
+tags:
+  - name: Masalar
+    description: Masa oluşturma ve durumlarını sorgulama işlemleri
+  - name: Sipariş ve Ödeme
+    description: Masalara sipariş ekleme ve ödeme alma işlemleri
+
+paths:
+  /masalar:
+    post:
+      tags:
+        - Masalar
+      summary: Yeni Masa Oluştur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MasaOlusturInput'
+      responses:
+        '201':
+          description: Masa başarıyla oluşturuldu
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Masa başarıyla oluşturuldu"
+                  masa_id:
+                    type: string
+                    example: "Masa-1"
+        '400':
+          description: Hatalı istek, eksik bilgi veya ID zaten mevcut
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hata'
+    get:
+      tags:
+        - Masalar
+      summary: Tüm Masaları ve Durumlarını Listele
+      responses:
+        '200':
+          description: Masalar listelendi
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MasaDurumu'
+
+  /siparis:
+    post:
+      tags:
+        - Sipariş ve Ödeme
+      summary: Masaya Yeni Sipariş Ekle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SiparisInput'
+      responses:
+        '201':
+          description: Sipariş başarıyla eklendi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Sipariş eklendi"
+                  masa:
+                    type: string
+                    example: "Bahçe Masa 1"
+                  urun:
+                    type: string
+                    example: "Cay"
+                  fiyat:
+                    type: number
+                    format: float
+                    example: 15.50
+        '404':
+          description: Masa bulunamadı
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hata'
+
+  /odeme:
+    post:
+      tags:
+        - Sipariş ve Ödeme
+      summary: Ödeme Al
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OdemeInput'
+      responses:
+        '200':
+          description: Ödeme başarıyla işlendi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Ödeme alındı"
+                  odenen:
+                    type: number
+                    format: float
+                    example: 50.0
+                  guncel_kalan_borc:
+                    type: number
+                    format: float
+                    example: 2.50
+        '404':
+          description: Masa bulunamadı
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hata'
+
+  '/masalar/{masa_id}/sifirla':
+    delete:
+      tags:
+        - Masalar
+      summary: Masayı Sıfırla (Hesabı Kapat)
+      parameters:
+        - in: path
+          name: masa_id
+          required: true
+          schema:
+            type: string
+          description: Sıfırlanacak Masa ID'si
+      responses:
+        '200':
+          description: Masa sıfırlandı ve ödeme bilgileri temizlendi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Bahçe Masa 1 (Masa-1) sıfırlandı ve yeni müşteriye hazır."
+        '404':
+          description: Masa bulunamadı
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hata'
+
+components:
+  schemas:
+    # --- Veritabanı Modelleri (Input/Output Şemaları) ---
+    MasaOlusturInput:
+      type: object
+      required:
+        - id
+        - masa_adi
+      properties:
+        id:
+          type: string
+          description: Masanın benzersiz ID'si (Primer Anahtar).
+          example: "Masa-1"
+        masa_adi:
+          type: string
+          description: Masanın kullanıcı dostu adı.
+          example: "Bahçe Masa 1"
+    
+    MasaDurumu:
+      type: object
+      description: GET /masalar endpoint'inden dönen masa durumu özeti.
+      properties:
+        id:
+          type: string
+          example: "Masa-1"
+        ad:
+          type: string
+          example: "Bahçe Masa 1"
+        toplam_siparis_tutari:
+          type: number
+          format: float
+          description: Masadaki tüm siparişlerin toplam tutarı.
+          example: 52.50
+        odenen_tutar:
+          type: number
+          format: float
+          description: Masa için daha önce ödenen toplam tutar.
+          example: 50.00
+        kalan_bakiye:
+          type: number
+          format: float
+          description: Kalan ödenmesi gereken miktar (Toplam Sipariş - Ödenen Tutar).
+          example: 2.50
+        durum:
+          type: string
+          enum: [Musait, Dolu]
+          description: Masanın durumu.
+          example: "Dolu"
+    
+    SiparisInput:
+      type: object
+      required:
+        - masa_id
+        - urun_adi
+        - tutar
+      properties:
+        masa_id:
+          type: string
+          description: Siparişin ekleneceği masanın ID'si.
+          example: "Masa-1"
+        urun_adi:
+          type: string
+          description: Sipariş kaleminin adı.
+          example: "Cay"
+        tutar:
+          type: number
+          format: float
+          description: Sipariş kaleminin fiyatı.
+          example: 15.50
+
+    OdemeInput:
+      type: object
+      required:
+        - masa_id
+        - tutar
+      properties:
+        masa_id:
+          type: string
+          description: Ödemenin yapılacağı masanın ID'si.
+          example: "Masa-1"
+        tutar:
+          type: number
+          format: float
+          description: Ödenen miktar.
+          example: 50.0
+
+    Hata:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Hata mesajı
+          example: "Masa bulunamadı"
